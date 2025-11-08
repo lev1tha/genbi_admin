@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { $API } from "../../axios";
 import Modal from "../../components/modal";
+import EditUserModal from "../../components/updateUserModal";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -20,15 +21,28 @@ export default function Users() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [callModalOpen, setCallModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveUser = async (updatedData) => {
+    try {
+      await $API.put(`/auth/users/${updatedData.id}`, updatedData);
+      setEditModalOpen(false);
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
         const response = await $API.get("/auth/users");
-
-        console.log("Full response:", response);
-        console.log("Response data:", response.data);
 
         // Проверяем разные возможные структуры ответа
         let userData = response.data;
@@ -45,13 +59,9 @@ export default function Users() {
         else if (Array.isArray(response.data)) {
           userData = response.data;
         }
-
-        console.log("Extracted userData:", userData);
         setUsers(userData);
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching users:", error);
-        console.error("Error response:", error.response);
         setIsLoading(false);
       }
     };
@@ -97,11 +107,17 @@ export default function Users() {
     );
   };
 
-  console.log("users:", users);
-  console.log("filteredUsers:", filteredUsers);
-
   return (
     <>
+      {
+        <EditUserModal
+          dataUser={users}
+          userId={selectedUser}
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSave={handleSaveUser}
+        />
+      }
       {callModalOpen && <Modal onClose={() => setCallModalOpen(false)} />}
       <div className="p-6 bg-gray-50 min-h-screen">
         <div className="mb-6">
@@ -248,7 +264,10 @@ export default function Users() {
 
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end gap-2">
-                            <button className="p-2 text-gray-400 hover:text-slate-600 hover:bg-gray-100 rounded-lg transition">
+                            <button
+                              onClick={() => handleEditUser(user.id)}
+                              className="p-2 text-gray-400 hover:text-slate-600 hover:bg-gray-100 rounded-lg transition"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
