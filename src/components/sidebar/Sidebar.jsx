@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { $NavigateTo } from "../db";
+import { $NavigateTo } from "../../db";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function Sidebar() {

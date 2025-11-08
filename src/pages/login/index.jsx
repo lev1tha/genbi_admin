@@ -1,32 +1,71 @@
 import { useState } from "react";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
-import { $API } from "../../axios";
+import $API from "../../axios";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    login: "",
+    email: "",
     password: "",
   });
-  const [errorMessage, setErrorMessage] = useState("");
+  const [error, setError] = useState("");
 
   const onClickShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
+  const extractTokens = (response) => {
+    const data = response.data;
+
+    const possiblePaths = [
+      { token: data.token, refresh: data.refreshToken },
+      { token: data.acces_token, refresh: data.refresh_token },
+      { token: data.accesToken, refresh: data.refreshToken },
+      { token: data.data?.token, refresh: data.data?.refreshToken },
+      { token: data.data?.acces_token, refresh: data.data?.refresh_token },
+      { token: data.tokens?.token, refresh: data.tokens?.refreshToken },
+      { token: data.tokens?.acces_token, refresh: data.tokens?.refresh_token },
+    ];
+
+    for (const path of possiblePaths) {
+      if (path.token) {
+        return { token: path.token, refreshToken: path.refresh };
+      }
+    }
+
+    return { token: null, refreshToken: null };
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
+    setError("");
+
     $API
       .post("/auth/login", formData)
       .then((response) => {
-        const { token, refreshToken } = response.data;
-        localStorage.setItem("token", token);
-        localStorage.setItem("refreshToken", refreshToken);
-        window.location.href = "/login";
+        console.log("Response:", response.data);
+
+        const { token, refreshToken } = extractTokens(response);
+
+        if (token) {
+          localStorage.setItem("token", token);
+          if (refreshToken) {
+            localStorage.setItem("refreshToken", refreshToken);
+          }
+          window.location.href = "/users";
+        } else {
+          setError("Токен не получен от сервера");
+          console.error("Структура ответа:", response.data);
+        }
       })
       .catch((error) => {
-        setErrorMessage(error.data?.message || "Ошибка при входе");
+        console.error("Login error:", error);
+
+        if (error.response?.status === 401) {
+          setError("Неверный логин или пароль");
+        } else {
+          setError("Произошла ошибка при входе");
+        }
       });
   };
 
@@ -40,7 +79,6 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-700 rounded-lg mb-4">
             <Lock className="w-8 h-8 text-white" />
@@ -49,13 +87,17 @@ export default function Login() {
           <p className="text-gray-500 mt-1">Войдите для продолжения</p>
         </div>
 
-        {/* Form Card */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Login Input */}
             <div>
               <label
-                htmlFor="login"
+                htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
                 Логин
@@ -66,9 +108,9 @@ export default function Login() {
                 </div>
                 <input
                   type="text"
-                  id="login"
-                  name="login"
-                  value={formData.login}
+                  id="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleChange}
                   placeholder="Введите логин"
                   className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition outline-none text-gray-900"
@@ -77,7 +119,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Password Input */}
             <div>
               <label
                 htmlFor="password"
@@ -107,16 +148,12 @@ export default function Login() {
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
                   ) : (
-                    <Eye className="h-5 w-5" />
+                    <Eye className="h-5 h-5" />
                   )}
                 </button>
               </div>
-              {errorMessage && (
-                <div className="mt-2 text-sm text-red-600">{errorMessage}</div>
-              )}
             </div>
 
-            {/* Remember & Forgot */}
             <div className="flex items-center justify-between">
               <label className="flex items-center cursor-pointer">
                 <input
@@ -135,7 +172,6 @@ export default function Login() {
               </a>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               className="w-full bg-slate-700 hover:bg-slate-800 text-white py-2.5 rounded-md font-medium transition duration-150 shadow-sm"
@@ -144,8 +180,6 @@ export default function Login() {
             </button>
           </form>
         </div>
-
-        {/* Footer */}
         <p className="text-center text-xs text-gray-500 mt-6">
           © PROlab Agency 2025 Все права защищены
         </p>

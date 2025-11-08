@@ -16,12 +16,11 @@ const $APIFORMS = axios.create({
   },
 });
 
-// Request interceptor - добавляем токен к каждому запросу
 $API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Token ${token}`;
     }
     return config;
   },
@@ -34,7 +33,7 @@ $APIFORMS.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Token ${token}`;
     }
     return config;
   },
@@ -43,13 +42,11 @@ $APIFORMS.interceptors.request.use(
   }
 );
 
-// Response interceptor - обработка ошибок и обновление токена
 $API.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Если ошибка 401 и это не повторный запрос
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -60,34 +57,41 @@ $API.interceptors.response.use(
           throw new Error("No refresh token available");
         }
 
-        // Запрос на обновление токена
+        console.log("Attempting to refresh token...");
+
         const refreshResponse = await axios.post(
           `${PUBLIC_BASE_URL}auth/refresh`,
-          { refreshToken }
+          {
+            refresh_token: refreshToken,
+          }
         );
 
-        const newToken = refreshResponse.data?.token;
-        const newRefreshToken = refreshResponse.data?.refreshToken;
+        console.log("Refresh response:", refreshResponse.data);
+
+        const newToken =
+          refreshResponse.data?.acces_token ||
+          refreshResponse.data?.access_token;
+        const newRefreshToken = refreshResponse.data?.refresh_token;
 
         if (newToken) {
-          // Сохраняем новые токены
           localStorage.setItem("token", newToken);
+          console.log("New token saved");
+
           if (newRefreshToken) {
             localStorage.setItem("refreshToken", newRefreshToken);
+            console.log("New refresh token saved");
           }
 
-          // Обновляем заголовок и повторяем оригинальный запрос
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          originalRequest.headers.Authorization = `Token ${newToken}`;
           return $API(originalRequest);
         }
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);
+        console.error("Refresh error response:", refreshError.response?.data);
 
-        // Очищаем токены и редиректим на логин
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
 
-        // Редирект на страницу логина
         window.location.href = "/login";
 
         return Promise.reject(refreshError);
@@ -115,11 +119,15 @@ $APIFORMS.interceptors.response.use(
 
         const refreshResponse = await axios.post(
           `${PUBLIC_BASE_URL}auth/refresh`,
-          { refreshToken }
+          {
+            refresh_token: refreshToken,
+          }
         );
 
-        const newToken = refreshResponse.data?.token;
-        const newRefreshToken = refreshResponse.data?.refreshToken;
+        const newToken =
+          refreshResponse.data?.acces_token ||
+          refreshResponse.data?.access_token;
+        const newRefreshToken = refreshResponse.data?.refresh_token;
 
         if (newToken) {
           localStorage.setItem("token", newToken);
@@ -127,7 +135,7 @@ $APIFORMS.interceptors.response.use(
             localStorage.setItem("refreshToken", newRefreshToken);
           }
 
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          originalRequest.headers.Authorization = `Token ${newToken}`;
           return $APIFORMS(originalRequest);
         }
       } catch (refreshError) {

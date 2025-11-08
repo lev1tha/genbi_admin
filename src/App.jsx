@@ -1,7 +1,8 @@
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import Layout from "./layout";
 import Login from "./pages/login";
+import Layout from "./components/layout";
+import Users from "./pages/users";
 
 function App() {
   const navigate = useNavigate();
@@ -16,7 +17,9 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />}></Route>
-      <Route path="/*" element={<Layout />}></Route>
+      <Route path="/" element={<Layout />}>
+        <Route path="/users" element={<Users />} />
+      </Route>
     </Routes>
   );
 }
