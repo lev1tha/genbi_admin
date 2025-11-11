@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -12,20 +12,47 @@ import {
   UserX,
 } from "lucide-react";
 import { $API } from "../../axios";
-import Modal from "../../components/modal";
 import EditUserModal from "../../components/updateUserModal";
+import AddUserModal from "../../components/addUserModal";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
-  const [callModalOpen, setCallModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
 
-  const handleEditUser = (user) => {
-    setSelectedUser(user);
+  // Функция для загрузки пользователей
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await $API.get("/auth/users");
+
+      let userData = response.data;
+
+      if (response.data.data && Array.isArray(response.data.data)) {
+        userData = response.data.data;
+      } else if (response.data.users && Array.isArray(response.data.users)) {
+        userData = response.data.users;
+      } else if (Array.isArray(response.data)) {
+        userData = response.data;
+      }
+      setUsers(userData);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleEditUser = (userId) => {
+    setSelectedUserId(userId);
     setEditModalOpen(true);
   };
 
@@ -33,41 +60,11 @@ export default function Users() {
     try {
       await $API.put(`/auth/users/${updatedData.id}`, updatedData);
       setEditModalOpen(false);
+      fetchUsers(); // Обновляем список после редактирования
     } catch (error) {
       console.error("Error updating user:", error);
     }
   };
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setIsLoading(true);
-        const response = await $API.get("/auth/users");
-
-        // Проверяем разные возможные структуры ответа
-        let userData = response.data;
-
-        // Если данные в response.data.data
-        if (response.data.data && Array.isArray(response.data.data)) {
-          userData = response.data.data;
-        }
-        // Если данные в response.data.users
-        else if (response.data.users && Array.isArray(response.data.users)) {
-          userData = response.data.users;
-        }
-        // Если response.data уже массив
-        else if (Array.isArray(response.data)) {
-          userData = response.data;
-        }
-        setUsers(userData);
-        setIsLoading(false);
-      } catch (error) {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, []);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -109,16 +106,24 @@ export default function Users() {
 
   return (
     <>
-      {
-        <EditUserModal
-          dataUser={users}
-          userId={selectedUser}
-          isOpen={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          onSave={handleSaveUser}
-        />
-      }
-      {callModalOpen && <Modal onClose={() => setCallModalOpen(false)} />}
+      {/* Модалка редактирования */}
+      <EditUserModal
+        userId={selectedUserId}
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedUserId(null);
+        }}
+        onSave={handleSaveUser}
+      />
+
+      {/* Модалка добавления */}
+      <AddUserModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSuccess={fetchUsers} // Обновляем список после добавления
+      />
+
       <div className="p-6 bg-gray-50 min-h-screen">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800 mb-2">
@@ -157,7 +162,7 @@ export default function Users() {
               </button>
 
               <button
-                onClick={() => setCallModalOpen((prev) => !prev)}
+                onClick={() => setAddModalOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition"
               >
                 <Plus className="w-4 h-4" />

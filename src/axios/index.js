@@ -20,7 +20,7 @@ $API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers.Authorization = `Token ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -33,7 +33,7 @@ $APIFORMS.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers.Authorization = `Token ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -82,7 +82,7 @@ $API.interceptors.response.use(
             console.log("New refresh token saved");
           }
 
-          originalRequest.headers.Authorization = `Token ${newToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return $API(originalRequest);
         }
       } catch (refreshError) {
@@ -135,7 +135,7 @@ $APIFORMS.interceptors.response.use(
             localStorage.setItem("refreshToken", newRefreshToken);
           }
 
-          originalRequest.headers.Authorization = `Token ${newToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return $APIFORMS(originalRequest);
         }
       } catch (refreshError) {

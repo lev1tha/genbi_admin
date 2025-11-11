@@ -103,7 +103,7 @@ export default function EditUserModal({
                 <h3 className="text-lg font-semibold text-white">
                   Редактировать пользователя
                 </h3>
-                <p className="text-sm text-slate-300">ID: {dataUser.name}</p>
+                <p className="text-sm text-slate-300">ID: {formData.name}</p>
               </div>
             </div>
             <button

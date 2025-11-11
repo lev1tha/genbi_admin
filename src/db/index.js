@@ -19,8 +19,8 @@ export const $NavigateTo = [
     icon: <Users />,
   },
   {
-    name: "Аналитика",
-    path: "/analytics",
+    name: "Создание локации",
+    path: "/create-location",
     icon: <BarChart3 />,
     badge: "3",
   },
