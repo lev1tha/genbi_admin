@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { X, Save, User, Mail, Phone, MapPin, Upload, Lock } from "lucide-react";
-import $APIFormData from "../../axios";
+import $APIFormData from "../../../axios";
 
 export default function AddUserModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
-    email: "",
-    full_name: "",
-    password: "",
+    email: "office@prolabagency.com",
+    full_name: "Маткеримов Элдос",
     gender: "male",
-    city_id: 0,
-    phone_number: "",
+    city_id: 1,
+    phone_number: "+996700600600",
     is_active: true,
+    image_url: "",
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -64,7 +64,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }) {
       submitData.append("is_active", formData.is_active ? 1 : 0);
 
       if (imageFile) {
-        submitData.append("image", imageFile);
+        submitData.append("image_url", imageFile);
       }
 
       await $APIFormData.post("/auth/users", submitData);

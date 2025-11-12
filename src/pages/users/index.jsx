@@ -11,9 +11,9 @@ import {
   UserCheck,
   UserX,
 } from "lucide-react";
-import { $API } from "../../axios";
-import EditUserModal from "../../components/updateUserModal";
-import AddUserModal from "../../components/addUserModal";
+import { $API, $APIFORMS } from "../../axios";
+import EditUserModal from "../../components/userManegment/updateUserModal";
+import AddUserModal from "../../components/userManegment/addUserModal";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -58,11 +58,53 @@ export default function Users() {
 
   const handleSaveUser = async (updatedData) => {
     try {
-      await $API.put(`/auth/users/${updatedData.id}`, updatedData);
+      const formData = new FormData();
+
+      formData.append("email", updatedData.email);
+      formData.append("full_name", updatedData.full_name);
+      formData.append("gender", updatedData.gender);
+      formData.append("city_id", updatedData.city_id);
+      formData.append("phone_number", updatedData.phone_number);
+      formData.append("is_active", updatedData.is_active ? 1 : 0);
+
+      if (updatedData.imageFile && updatedData.imageFile instanceof File) {
+        formData.append("image_url", updatedData.imageFile);
+      }
+
+      console.log("Отправляемые данные:");
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+
+      await $APIFORMS.patch(`/auth/users/${updatedData.id}`, formData);
+
       setEditModalOpen(false);
       fetchUsers(); // Обновляем список после редактирования
     } catch (error) {
       console.error("Error updating user:", error);
+      alert(
+        `Ошибка обновления пользователя: ${
+          error.response?.data?.message || error.message
+        }`
+      );
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    const confirmed = window.confirm(
+      "Вы уверены, что хотите удалить пользователя? Это действие нельзя отменить."
+    );
+    if (!confirmed) return;
+
+    try {
+      await $API.delete(`/auth/users/${id}`);
+      // Убираем пользователя из списка после успешного удаления
+      setUsers((prev) => prev.filter((u) => String(u.id) !== String(id)));
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert(
+        "Не удалось удалить пользователя. Проверьте консоль для подробностей."
+      );
     }
   };
 
@@ -76,16 +118,6 @@ export default function Users() {
       filterStatus === "all" || user.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
-
-  const getInitials = (name) => {
-    if (!name) return "??";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const getStatusBadge = (status) => {
     if (status === "active" || status === true || status === 1) {
@@ -216,15 +248,32 @@ export default function Users() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-slate-600 flex items-center justify-center text-white font-medium">
-                                {getInitials(
-                                  user.name || user.username || user.login
+                              <div className="h-10 w-10 rounded-full bg-slate-600 flex items-center justify-center text-white font-medium overflow-hidden">
+                                {user.image_url ? (
+                                  <img
+                                    src={user.image_url}
+                                    alt={user.username || "avatar"}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="uppercase">
+                                    {(
+                                      user.full_name ||
+                                      user.username ||
+                                      user.login ||
+                                      "—"
+                                    )
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .slice(0, 2)}
+                                  </span>
                                 )}
                               </div>
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">
-                                {user.name ||
+                                {user.full_name ||
                                   user.username ||
                                   user.login ||
                                   "Без имени"}
@@ -276,7 +325,10 @@ export default function Users() {
                               <Edit className="w-4 h-4" />
                             </button>
                             <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="w-4 h-4"
+                              />
                             </button>
                             <button className="p-2 text-gray-400 hover:text-slate-600 hover:bg-gray-100 rounded-lg transition">
                               <MoreVertical className="w-4 h-4" />

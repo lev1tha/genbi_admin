@@ -68,14 +68,15 @@ $API.interceptors.response.use(
 
         console.log("Refresh response:", refreshResponse.data);
 
+        // ИСПРАВЛЕНО: Проверяем оба варианта названия полей
         const newToken =
-          refreshResponse.data?.acces_token ||
-          refreshResponse.data?.access_token;
+          refreshResponse.data?.access_token ||
+          refreshResponse.data?.acces_token;
         const newRefreshToken = refreshResponse.data?.refresh_token;
 
         if (newToken) {
           localStorage.setItem("token", newToken);
-          console.log("New token saved");
+          console.log("New token saved:", newToken.substring(0, 20) + "...");
 
           if (newRefreshToken) {
             localStorage.setItem("refreshToken", newRefreshToken);
@@ -84,6 +85,9 @@ $API.interceptors.response.use(
 
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return $API(originalRequest);
+        } else {
+          console.error("No access token in response:", refreshResponse.data);
+          throw new Error("No access token received");
         }
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);
@@ -124,9 +128,10 @@ $APIFORMS.interceptors.response.use(
           }
         );
 
+        // ИСПРАВЛЕНО: Проверяем оба варианта названия полей
         const newToken =
-          refreshResponse.data?.acces_token ||
-          refreshResponse.data?.access_token;
+          refreshResponse.data?.access_token ||
+          refreshResponse.data?.acces_token;
         const newRefreshToken = refreshResponse.data?.refresh_token;
 
         if (newToken) {
@@ -137,6 +142,8 @@ $APIFORMS.interceptors.response.use(
 
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return $APIFORMS(originalRequest);
+        } else {
+          throw new Error("No access token received");
         }
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);

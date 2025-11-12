@@ -17,13 +17,20 @@ function App() {
     }
   }, [navigate]);
 
+  // что бы не отправляла на пустую страницу и url 
+  useEffect(() => {
+    if (window.location.pathname == "/") {
+      navigate("/dashboard");
+    }
+  }, [window.location.pathname]);
+
   return (
     <Routes>
       <Route path="/login" element={<Login />}></Route>
       <Route path="/" element={<Layout />}>
-        <Route path="/users" element={<Users />} />
-        <Route path="/my-profile" element={<AdminProfile />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/my-profile" element={<AdminProfile />} />
+        <Route path="/users" element={<Users />} />
         <Route path="/create-location" element={<CreateLocation />} />
       </Route>
     </Routes>

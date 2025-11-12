@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Save, User, Mail, Phone, MapPin, Upload } from "lucide-react";
-import $API from "../../axios";
+import $API from "../../../axios";
 
 export default function EditUserModal({
   dataUser,
@@ -20,6 +20,7 @@ export default function EditUserModal({
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [originalImageUrl, setOriginalImageUrl] = useState(""); // Для хранения оригинального URL
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -40,7 +41,10 @@ export default function EditUserModal({
             is_active: userData.is_active ?? userData.status ?? true,
           });
 
-          setImagePreview(userData.image_url || "");
+          // Сохраняем оригинальный URL изображения
+          const imageUrl = userData.image_url || "";
+          setOriginalImageUrl(imageUrl);
+          setImagePreview(imageUrl);
           setImageFile(null);
           setIsLoading(false);
         } catch (error) {
@@ -76,6 +80,7 @@ export default function EditUserModal({
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview("");
+    setOriginalImageUrl("");
   };
 
   const handleSubmit = (e) => {
@@ -84,6 +89,9 @@ export default function EditUserModal({
   };
 
   if (!isOpen) return null;
+
+  // Определяем, что показывать: новое изображение или существующее
+  const displayImage = imagePreview || originalImageUrl;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -103,7 +111,7 @@ export default function EditUserModal({
                 <h3 className="text-lg font-semibold text-white">
                   Редактировать пользователя
                 </h3>
-                <p className="text-sm text-slate-300">ID: {formData.name}</p>
+                <p className="text-sm text-slate-300">ID: {userId}</p>
               </div>
             </div>
             <button
@@ -119,7 +127,7 @@ export default function EditUserModal({
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit}>
+            <div>
               <div className="px-6 py-6 space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -129,13 +137,22 @@ export default function EditUserModal({
 
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      {imagePreview ? (
+                      {displayImage ? (
                         <div className="relative">
                           <img
-                            src={imagePreview}
+                            src={displayImage}
                             alt="Preview"
                             className="h-24 w-24 rounded-full object-cover border-4 border-gray-200"
+                            onError={(e) => {
+                              // Если изображение не загружается, показываем placeholder
+                              e.target.style.display = "none";
+                              e.target.nextElementSibling.style.display =
+                                "flex";
+                            }}
                           />
+                          <div className="h-24 w-24 rounded-full bg-gray-200 items-center justify-center hidden">
+                            <User className="w-12 h-12 text-gray-400" />
+                          </div>
                           <button
                             type="button"
                             onClick={handleRemoveImage}
@@ -169,6 +186,11 @@ export default function EditUserModal({
                       {imageFile && (
                         <p className="text-xs text-gray-500 mt-2">
                           Выбран: {imageFile.name}
+                        </p>
+                      )}
+                      {!imageFile && originalImageUrl && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Текущее изображение с сервера
                         </p>
                       )}
                       <p className="text-xs text-gray-400 mt-1">
@@ -282,14 +304,15 @@ export default function EditUserModal({
                   Отмена
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition"
                 >
                   <Save className="w-4 h-4" />
                   Сохранить
                 </button>
               </div>
-            </form>
+            </div>
           )}
         </div>
       </div>

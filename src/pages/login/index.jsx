@@ -19,20 +19,25 @@ export default function Login() {
 
     const possiblePaths = [
       { token: data.token, refresh: data.refreshToken },
+      { token: data.access_token, refresh: data.refresh_token },
       { token: data.acces_token, refresh: data.refresh_token },
-      { token: data.accesToken, refresh: data.refreshToken },
+      { token: data.accessToken, refresh: data.refreshToken },
       { token: data.data?.token, refresh: data.data?.refreshToken },
+      { token: data.data?.access_token, refresh: data.data?.refresh_token },
       { token: data.data?.acces_token, refresh: data.data?.refresh_token },
       { token: data.tokens?.token, refresh: data.tokens?.refreshToken },
+      { token: data.tokens?.access_token, refresh: data.tokens?.refresh_token },
       { token: data.tokens?.acces_token, refresh: data.tokens?.refresh_token },
     ];
 
     for (const path of possiblePaths) {
       if (path.token) {
+        console.log("Токен найден:", path.token.substring(0, 20) + "..."); // для отладки
         return { token: path.token, refreshToken: path.refresh };
       }
     }
 
+    console.error("Токен не найден. Структура ответа:", data);
     return { token: null, refreshToken: null };
   };
 
@@ -49,9 +54,13 @@ export default function Login() {
 
         if (token) {
           localStorage.setItem("token", token);
+          console.log("Токен сохранен в localStorage");
+
           if (refreshToken) {
             localStorage.setItem("refreshToken", refreshToken);
+            console.log("Refresh токен сохранен в localStorage");
           }
+
           window.location.href = "/users";
         } else {
           setError("Токен не получен от сервера");
@@ -64,7 +73,9 @@ export default function Login() {
         if (error.response?.status === 401) {
           setError("Неверный логин или пароль");
         } else {
-          setError("Произошла ошибка при входе");
+          setError(
+            error.response?.data?.message || "Произошла ошибка при входе"
+          );
         }
       });
   };

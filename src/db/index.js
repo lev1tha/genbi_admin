@@ -22,22 +22,21 @@ export const $NavigateTo = [
     name: "Создание локации",
     path: "/create-location",
     icon: <BarChart3 />,
-    badge: "3",
   },
-  {
-    name: "Отчеты",
-    path: "/reports",
-    icon: <FileText />,
-  },
-  {
-    name: "Уведомления",
-    path: "/notifications",
-    icon: <Bell />,
-    badge: "12",
-  },
-  {
-    name: "Настройки",
-    path: "/settings",
-    icon: <Settings />,
-  },
+  // {
+  //   name: "Отчеты",
+  //   path: "/reports",
+  //   icon: <FileText />,
+  // },
+  // {
+  //   name: "Уведомления",
+  //   path: "/notifications",
+  //   icon: <Bell />,
+  //   badge: "12",
+  // },
+  // {
+  //   name: "Настройки",
+  //   path: "/settings",
+  //   icon: <Settings />,
+  // },
 ];

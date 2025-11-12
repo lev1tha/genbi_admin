@@ -1,226 +1,200 @@
-import { useState, useEffect } from "react";
-import {
-  MoreVertical,
-  Edit,
-  Trash2,
-  LocateIcon,
-  Phone,
-  Search,
-  Download,
-  Plus,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Plus, Globe, Map, MapPin } from "lucide-react";
+import { TabButton } from "../../components/locationManegment/TabButton";
+import { CountriesTable } from "../../components/locationManegment/countriesTable";
+import { RegionsTable } from "../../components/locationManegment/regionTable";
+import { CitiesTable } from "../../components/locationManegment/citiesTable";
+import { LocationModal } from "../../components/locationManegment/locationModal";
+
 import $API from "../../axios";
 
-export default function CreateLocation() {
-  const [locations, setLocations] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [isLoading, setIsLoading] = useState(true);
+const LocationsPage = () => {
+  const [activeTab, setActiveTab] = useState("countries");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState("add");
+  const [selectedItem, setSelectedItem] = useState(null);
 
-  useEffect(() => {
-    $API.get("/geo/countries/").then(({ data }) => {
-      setLocations(data);
-      setIsLoading(false);
+  const [countries, setCountries] = useState([]);
+  const [regions, setRegions] = useState();
+  const [cities, setCities] = useState();
+
+  const fetchData = useEffect(() => {
+    Promise.all([
+      $API.get("geo/countries/"),
+      $API.get("geo/regions/"),
+      $API.get("geo/cities/"),
+    ]).then(([countriesRes, regionsRes, citiesRes]) => {
+      setCountries(countriesRes.data);
+      setRegions(regionsRes.data);
+      setCities(citiesRes.data);
     });
   }, []);
 
-  const filteredLocations = locations
-    .filter((location) =>
-      location.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .filter((location) => {
-      if (statusFilter === "all") return true;
-      return statusFilter === "active"
-        ? location.status || location.is_active
-        : !location.status && !location.is_active;
-    });
+  const openModal = (type, item = null) => {
+    setModalType(type);
+    setSelectedItem(item);
+    setShowModal(true);
+  };
 
-  const getInitials = (name) =>
-    name
-      ? name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-      : "—";
+  const handleEdit = (item) => {
+    openModal("edit", item);
+  };
 
-  const getStatusBadge = (status) =>
-    status ? (
-      <span className="text-green-600">Активен</span>
-    ) : (
-      <span className="text-red-600">Неактивен</span>
-    );
+  const handleDelete = (id, type) => {
+    const userConfirmed = window.confirm("Вы уверены, что хотите удалить?");
+    if (userConfirmed) {
+      let endpoint = "";
+      switch (type) {
+        case "countries":
+          endpoint = `geo/countries/${id}/`;
+          setCountries((prev) =>
+            prev.filter((u) => String(u.id) !== String(id))
+          );
+          break;
+        case "regions":
+          endpoint = `geo/regions/${id}/`;
+          setRegions((prev) => prev.filter((u) => String(u.id) !== String(id)));
+          break;
+        case "cities":
+          endpoint = `geo/cities/${id}/`;
+          setCities((prev) => prev.filter((u) => String(u.id) !== String(id)));
+          break;
+      }
 
-  const handleEditLocation = (locationId) => {
-    console.log("Edit location with ID:", locationId);
+      $API
+        .delete(endpoint)
+        .then(() => {
+          // Обновить список после удаления
+          console.log("Удалено успешно");
+        })
+        .catch((error) => {
+          console.error("Ошибка удаления:", error);
+        });
+    }
+  };
+
+  const handleSave = () => {
+    console.log("Сохранение данных");
+    // Здесь логика сохранения через API
+    setShowModal(false);
+  };
+
+  const handleSucces = () => {
+    setShowModal(false);
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-6 items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          Создание Туристических карточек
-        </h1>
-        <p className="text-gray-600">
-          Место где вы создаете те или локации для отправки туристов
-        </p>
-      </div>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Поиск по имени страны или локации..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
-            >
-              <option value="all">Все статусы</option>
-              <option value="active">Активные</option>
-              <option value="inactive">Неактивные</option>
-            </select>
-
-            <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Экспорт</span>
-            </button>
-
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Добавить</span>
-            </button>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Управление локациями
+          </h1>
+          <p className="text-gray-600">
+            Управляйте странами, регионами и городами вашей системы
+          </p>
         </div>
-      </div>
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          {filteredLocations.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Нет данных от сервера</p>
-              <p className="text-xs text-gray-400 mt-2">
-                Проверьте консоль для отладки
-              </p>
+
+        <div className="bg-white rounded-lg shadow-sm mb-6">
+          <div className="border-b border-gray-200 flex items-center justify-between px-6">
+            <div className="flex">
+              <TabButton
+                id="countries"
+                label="Страны"
+                icon={Globe}
+                activeTab={activeTab}
+                onClick={setActiveTab}
+              />
+              <TabButton
+                id="regions"
+                label="Регионы"
+                icon={Map}
+                activeTab={activeTab}
+                onClick={setActiveTab}
+              />
+              <TabButton
+                id="cities"
+                label="Города"
+                icon={MapPin}
+                activeTab={activeTab}
+                onClick={setActiveTab}
+              />
             </div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Страна
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Локация
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Роль
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Статус
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Дата регистрации
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Действия
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredLocations.map((location) => (
-                  <tr key={location.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-slate-600 flex items-center justify-center text-white font-medium">
-                            {getInitials(
-                              location.name ||
-                                location.username ||
-                                location.login
-                            )}
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {location.name ||
-                              location.username ||
-                              location.login ||
-                              "Без имени"}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {location.id}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
+          </div>
 
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <LocateIcon className="w-4 h-4 mr-2 text-gray-400" />
-                          {location.email || "Не указан"}
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                          {location.phone || "Не указан"}
-                        </div>
-                      </div>
-                    </td>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="relative flex-1 max-w-md">
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
+                <input
+                  type="text"
+                  placeholder={`Поиск ${
+                    activeTab === "countries"
+                      ? "стран"
+                      : activeTab === "regions"
+                      ? "регионов"
+                      : "городов"
+                  }...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={() => openModal("add")}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <Plus size={20} />
+                Добавить{" "}
+                {activeTab === "countries"
+                  ? "страну"
+                  : activeTab === "regions"
+                  ? "регион"
+                  : "город"}
+              </button>
+            </div>
 
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">
-                        {location.role || location.role_name || "Пользователь"}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(location.status || location.is_active)}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {location.createdAt || location.created_at
-                        ? new Date(
-                            location.createdAt || location.created_at
-                          ).toLocaleDateString("ru-RU")
-                        : "—"}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEditLocation(location.id)}
-                          className="p-2 text-gray-400 hover:text-slate-600 hover:bg-gray-100 rounded-lg transition"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-slate-600 hover:bg-gray-100 rounded-lg transition">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+            {activeTab === "countries" && (
+              <CountriesTable
+                countries={countries}
+                onEdit={handleEdit}
+                onDelete={(id) => handleDelete(id, "countries")}
+              />
+            )}
+            {activeTab === "regions" && (
+              <RegionsTable
+                regions={regions}
+                onEdit={handleEdit}
+                onDelete={(id) => handleDelete(id, "regions")}
+              />
+            )}
+            {activeTab === "cities" && (
+              <CitiesTable
+                cities={cities}
+                onEdit={handleEdit}
+                onDelete={(id) => handleDelete(id, "cities")}
+              />
+            )}
+          </div>
         </div>
-      )}
+      </div>
+
+      <LocationModal
+        show={showModal}
+        type={modalType}
+        activeTab={activeTab}
+        onClose={() => setShowModal(false)}
+        onSave={handleSave}
+        onSuccess={() => {
+          fetchData();
+        }}
+      />
     </div>
   );
-}
+};
+
+export default LocationsPage;
