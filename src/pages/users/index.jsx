@@ -60,15 +60,40 @@ export default function Users() {
     try {
       const formData = new FormData();
 
-      formData.append("email", updatedData.email);
-      formData.append("full_name", updatedData.full_name);
-      formData.append("gender", updatedData.gender);
-      formData.append("city_id", updatedData.city_id);
-      formData.append("phone_number", updatedData.phone_number);
+      // Добавляем только заполненные поля
+      if (updatedData.email) {
+        formData.append("email", updatedData.email);
+      }
+
+      if (updatedData.full_name) {
+        formData.append("full_name", updatedData.full_name);
+      }
+
+      if (updatedData.gender) {
+        formData.append("gender", updatedData.gender);
+      }
+
+      // Добавляем city_id только если он больше 0
+      if (updatedData.city_id && updatedData.city_id > 0) {
+        formData.append("city_id", updatedData.city_id);
+      }
+
+      // Добавляем phone_number только если он не пустой
+      if (updatedData.phone_number && updatedData.phone_number.trim() !== "") {
+        formData.append("phone_number", updatedData.phone_number);
+      }
+
+      // is_active всегда отправляем
       formData.append("is_active", updatedData.is_active ? 1 : 0);
 
+      // Пароль отправляем только если он заполнен (при изменении пароля)
+      if (updatedData.password && updatedData.password.trim() !== "") {
+        formData.append("password", updatedData.password);
+      }
+
+      // Изображение - отправляем только если есть новый файл
       if (updatedData.imageFile && updatedData.imageFile instanceof File) {
-        formData.append("image_url", updatedData.imageFile);
+        formData.append("image", updatedData.imageFile);
       }
 
       console.log("Отправляемые данные:");
@@ -79,14 +104,25 @@ export default function Users() {
       await $APIFORMS.patch(`/auth/users/${updatedData.id}`, formData);
 
       setEditModalOpen(false);
-      fetchUsers(); // Обновляем список после редактирования
+      fetchUsers();
+
+      // Опционально: показать успешное уведомление
+      alert("Пользователь успешно обновлен!");
     } catch (error) {
       console.error("Error updating user:", error);
-      alert(
-        `Ошибка обновления пользователя: ${
-          error.response?.data?.message || error.message
-        }`
-      );
+
+      // Более детальная обработка ошибок
+      let errorMessage = "Ошибка обновления пользователя";
+
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(errorMessage);
     }
   };
 
@@ -98,7 +134,6 @@ export default function Users() {
 
     try {
       await $API.delete(`/auth/users/${id}`);
-      // Убираем пользователя из списка после успешного удаления
       setUsers((prev) => prev.filter((u) => String(u.id) !== String(id)));
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -138,7 +173,6 @@ export default function Users() {
 
   return (
     <>
-      {/* Модалка редактирования */}
       <EditUserModal
         userId={selectedUserId}
         isOpen={editModalOpen}
@@ -149,7 +183,6 @@ export default function Users() {
         onSave={handleSaveUser}
       />
 
-      {/* Модалка добавления */}
       <AddUserModal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}

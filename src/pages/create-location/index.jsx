@@ -19,7 +19,7 @@ const LocationsPage = () => {
   const [regions, setRegions] = useState();
   const [cities, setCities] = useState();
 
-  const fetchData = useEffect(() => {
+  useEffect(() => {
     Promise.all([
       $API.get("geo/countries/"),
       $API.get("geo/regions/"),
@@ -65,7 +65,6 @@ const LocationsPage = () => {
       $API
         .delete(endpoint)
         .then(() => {
-          // Обновить список после удаления
           console.log("Удалено успешно");
         })
         .catch((error) => {
@@ -74,14 +73,38 @@ const LocationsPage = () => {
     }
   };
 
-  const handleSave = () => {
-    console.log("Сохранение данных");
-    // Здесь логика сохранения через API
-    setShowModal(false);
-  };
-
-  const handleSucces = () => {
-    setShowModal(false);
+  const handleSuccess = (data, type) => {
+    if (type === "add") {
+      switch (activeTab) {
+        case "countries":
+          setCountries((prev) => [...prev, data]);
+          break;
+        case "regions":
+          setRegions((prev) => [...prev, data]);
+          break;
+        case "cities":
+          setCities((prev) => [...prev, data]);
+          break;
+      }
+    } else {
+      switch (activeTab) {
+        case "countries":
+          setCountries((prev) =>
+            prev.map((item) => (item.id === data.id ? data : item))
+          );
+          break;
+        case "regions":
+          setRegions((prev) =>
+            prev.map((item) => (item.id === data.id ? data : item))
+          );
+          break;
+        case "cities":
+          setCities((prev) =>
+            prev.map((item) => (item.id === data.id ? data : item))
+          );
+          break;
+      }
+    }
   };
 
   return (
@@ -169,6 +192,7 @@ const LocationsPage = () => {
               <RegionsTable
                 regions={regions}
                 onEdit={handleEdit}
+                valueSelector={countries}
                 onDelete={(id) => handleDelete(id, "regions")}
               />
             )}
@@ -187,11 +211,9 @@ const LocationsPage = () => {
         show={showModal}
         type={modalType}
         activeTab={activeTab}
+        selectedItem={selectedItem} // ✅ ДОБАВИТЬ - для редактирования
         onClose={() => setShowModal(false)}
-        onSave={handleSave}
-        onSuccess={() => {
-          fetchData();
-        }}
+        onSuccess={handleSuccess} // ✅ ИЗМЕНИТЬ - использовать handleSuccess
       />
     </div>
   );

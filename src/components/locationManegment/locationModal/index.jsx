@@ -1,5 +1,5 @@
 // LocationModal.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import $API from "../../../axios";
 
 export const LocationModal = ({
@@ -11,15 +11,63 @@ export const LocationModal = ({
   onSuccess,
 }) => {
   const [formData, setFormData] = useState({
-    name: selectedItem?.name || "",
-    alpha2_code: selectedItem?.alpha2_code || "",
-    country_id: selectedItem?.region?.country?.id || "",
-    region_id: selectedItem?.region?.id || "",
-    population: selectedItem?.population || "",
+    name: "",
+    alpha2_code: "",
+    country_id: "",
+    region_id: "",
+    population: "",
   });
 
+  const [countries, setCountries] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (show && activeTab === "regions") {
+      $API
+        .get("geo/countries/")
+        .then((response) => {
+          setCountries(response.data);
+        })
+        .catch((error) => {
+          console.error("Ошибка загрузки стран:", error);
+        });
+    }
+  }, [show, activeTab]);
+
+  useEffect(() => {
+    if (show && activeTab === "cities") {
+      $API
+        .get("geo/regions/")
+        .then((response) => {
+          setRegions(response.data);
+        })
+        .catch((error) => {
+          console.error("Ошибка загрузки регионов:", error);
+        });
+    }
+  }, [show, activeTab]);
+
+  useEffect(() => {
+    if (show && type === "edit" && selectedItem) {
+      setFormData({
+        name: selectedItem.name || "",
+        alpha2_code: selectedItem.alpha2_code || "",
+        country_id: selectedItem.country?.id || "",
+        region_id: selectedItem.region?.id || "",
+        population: selectedItem.population || "",
+      });
+    } else if (show && type === "add") {
+      setFormData({
+        name: "",
+        alpha2_code: "",
+        country_id: "",
+        region_id: "",
+        population: "",
+      });
+    }
+  }, [show, type, selectedItem]);
 
   if (!show) return null;
 
@@ -41,18 +89,44 @@ export const LocationModal = ({
       let response;
       const endpoint = getEndpoint();
 
-      if (type === "add") {
-        response = await $API.post(endpoint, formData);
-      } else {
-        response = await $API.put(`${endpoint}${selectedItem.id}/`, formData);
+      let submitData = { ...formData };
+
+      if (activeTab === "regions") {
+        submitData = {
+          name: formData.name,
+          country_id: parseInt(formData.country_id),
+        };
       }
 
-      console.log("Успешно")
+      if (activeTab === "cities") {
+        submitData = {
+          name: formData.name,
+          region_id: parseInt(formData.region_id),
+          population: formData.population,
+        };
+      }
 
+      if (activeTab === "countries") {
+        submitData = {
+          name: formData.name,
+          alpha2_code: formData.alpha2_code.toUpperCase(),
+        };
+      }
+
+      if (type === "add") {
+        response = await $API.post(endpoint, submitData);
+      } else {
+        response = await $API.put(`${endpoint}${selectedItem.id}/`, submitData);
+      }
+
+      console.log("Успешно сохранено:", response.data);
       onSuccess(response.data, type);
       onClose();
     } catch (err) {
       console.error("Ошибка:", err);
+      setError(
+        err.response?.data?.message || "Произошла ошибка при сохранении"
+      );
     } finally {
       setLoading(false);
     }
@@ -78,7 +152,7 @@ export const LocationModal = ({
         </h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
             {error}
           </div>
         )}
@@ -111,7 +185,7 @@ export const LocationModal = ({
                 onChange={handleChange}
                 required
                 maxLength={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                 placeholder="Например: KG"
               />
             </div>
@@ -120,12 +194,21 @@ export const LocationModal = ({
           {activeTab === "regions" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Страна
+                Страна <span className="text-red-500">*</span>
               </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option>Выберите страну</option>
-                <option>Кыргызстан</option>
-                <option>Россия</option>
+              <select
+                name="country_id"
+                value={formData.country_id}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Выберите страну</option>
+                {countries.map((country) => (
+                  <option key={country.id} value={country.id}>
+                    {country.name} ({country.alpha2_code})
+                  </option>
+                ))}
               </select>
             </div>
           )}
@@ -134,12 +217,21 @@ export const LocationModal = ({
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Регион
+                  Регион <span className="text-red-500">*</span>
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Выберите регион</option>
-                  <option>Чуйская область</option>
-                  <option>Ошская область</option>
+                <select
+                  name="region_id"
+                  value={formData.region_id}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Выберите регион</option>
+                  {regions.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.name} ({region.country?.name})
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -148,6 +240,9 @@ export const LocationModal = ({
                 </label>
                 <input
                   type="text"
+                  name="population"
+                  value={formData.population}
+                  onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Например: 1.1M"
                 />

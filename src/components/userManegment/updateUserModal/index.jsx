@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Save, User, Mail, Phone, MapPin, Upload } from "lucide-react";
+import { X, Save, User, Mail, Phone, MapPin, Upload, Key } from "lucide-react";
 import $API from "../../../axios";
 
 export default function EditUserModal({
@@ -16,6 +16,7 @@ export default function EditUserModal({
     city_id: 0,
     phone_number: "",
     is_active: true,
+    password: "",
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -41,7 +42,6 @@ export default function EditUserModal({
             is_active: userData.is_active ?? userData.status ?? true,
           });
 
-          // Сохраняем оригинальный URL изображения
           const imageUrl = userData.image_url || "";
           setOriginalImageUrl(imageUrl);
           setImagePreview(imageUrl);
@@ -242,6 +242,21 @@ export default function EditUserModal({
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
                     placeholder="+996 XXX XXX XXX"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Key className="w-4 h-4 inline mr-2" />
+                    Поменять пароль
+                  </label>
+                  <input
+                    type="text"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
+                    placeholder="Password change her"
                   />
                 </div>
 
