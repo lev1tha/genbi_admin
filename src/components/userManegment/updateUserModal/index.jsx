@@ -33,7 +33,6 @@ export default function EditUserModal({ userId, isOpen, onClose, onSave }) {
       ? `${cleanBaseURL}${imagePath}`
       : `${cleanBaseURL}/${imagePath}`;
 
-    console.log("Full image URL:", fullPath);
     return fullPath;
   };
 
@@ -59,8 +58,6 @@ export default function EditUserModal({ userId, isOpen, onClose, onSave }) {
           const imageUrl = getFullImageUrl(
             userData.image_url || userData.image || userData.avatar
           );
-          console.log("Original image URL from server:", userData.image_url);
-          console.log("Processed image URL:", imageUrl);
 
           setOriginalImageUrl(imageUrl);
           setImagePreview(""); 

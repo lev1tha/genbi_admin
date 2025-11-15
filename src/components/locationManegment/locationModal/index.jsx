@@ -119,7 +119,6 @@ export const LocationModal = ({
       }
 
       if (response.status === 200 || response.status === 201) {
-        console.log("Успешно сохранено:", response.data);
         onSuccess(response.data, type);
         onClose();
       }

@@ -32,7 +32,6 @@ export default function Login() {
 
     for (const path of possiblePaths) {
       if (path.token) {
-        console.log("Токен найден:", path.token.substring(0, 20) + "..."); // для отладки
         return { token: path.token, refreshToken: path.refresh };
       }
     }
@@ -48,17 +47,13 @@ export default function Login() {
     $API
       .post("/auth/login", formData)
       .then((response) => {
-        console.log("Response:", response.data);
-
         const { token, refreshToken } = extractTokens(response);
 
         if (token) {
           localStorage.setItem("token", token);
-          console.log("✅ Токен сохранен в localStorage");
 
           if (refreshToken) {
             localStorage.setItem("refreshToken", refreshToken);
-            console.log("✅ Refresh токен сохранен в localStorage");
           }
 
           startTokenRefresh();
