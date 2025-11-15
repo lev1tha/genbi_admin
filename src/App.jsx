@@ -7,6 +7,7 @@ import AdminProfile from "./pages/profile";
 import Dashboard from "./pages/dashboard";
 import CreateLocation from "./pages/create-location";
 import HealthServer from "./pages/healthy-server";
+import Category from "./pages/category";
 
 function App() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ function App() {
         <Route path="/create-location" element={<CreateLocation />} />
         <Route path="/users" element={<Users />} />
         <Route path="/health-server" element={<HealthServer />} />
+        <Route path="/category" element={<Category />} />
       </Route>
     </Routes>
   );
