@@ -6,6 +6,7 @@ import {
   // FileText,
   // Bell,
   Server,
+  ChartColumnStacked,
 } from "lucide-react";
 
 export const $NavigateTo = [
@@ -40,6 +41,11 @@ export const $NavigateTo = [
   //   path: "/settings",
   //   icon: <Settings />,
   // },
+  {
+    name: "Категорий",
+    path: "/category",
+    icon: <ChartColumnStacked />,
+  },
   {
     name: "Состояние сервера",
     path: "/health-server",
