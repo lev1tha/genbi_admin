@@ -17,7 +17,6 @@ function App() {
     }
   }, [navigate]);
 
-  // что бы не отправляла на пустую страницу и url 
   useEffect(() => {
     if (window.location.pathname == "/") {
       navigate("/dashboard");
@@ -30,8 +29,8 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/my-profile" element={<AdminProfile />} />
-        <Route path="/users" element={<Users />} />
         <Route path="/create-location" element={<CreateLocation />} />
+        <Route path="/users" element={<Users />} />
       </Route>
     </Routes>
   );

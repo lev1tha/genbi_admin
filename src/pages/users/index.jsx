@@ -23,8 +23,30 @@ export default function Users() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [originalUserData, setOriginalUserData] = useState(null);
 
-  // Функция для загрузки пользователей
+  const getFullImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+
+    // Если путь уже полный URL
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath;
+    }
+
+    // Базовый URL вашего сервера
+    const baseURL = "https://genbi-back.prolabagency.com/";
+
+    // Убираем слэш в конце baseURL если есть
+    const cleanBaseURL = baseURL.replace(/\/$/, "");
+
+    // Формируем полный путь
+    const fullPath = imagePath.startsWith("/")
+      ? `${cleanBaseURL}${imagePath}`
+      : `${cleanBaseURL}/${imagePath}`;
+
+    return fullPath;
+  };
+
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
@@ -52,77 +74,59 @@ export default function Users() {
   }, []);
 
   const handleEditUser = (userId) => {
+    const user = users.find((u) => u.id === userId);
+    setOriginalUserData(user);
     setSelectedUserId(userId);
     setEditModalOpen(true);
   };
 
   const handleSaveUser = async (updatedData) => {
     try {
-      const formData = new FormData();
+      const finalData = {
+        email: updatedData.email || originalUserData.email,
+        full_name: updatedData.full_name || originalUserData.full_name,
+        gender: updatedData.gender || originalUserData.gender,
+        city_id: updatedData.city_id ?? originalUserData.city_id,
+        phone_number: updatedData.phone_number || originalUserData.phone_number,
+        is_active: updatedData.is_active,
+        password: updatedData.password || "",
+      };
 
-      // Добавляем только заполненные поля
-      if (updatedData.email) {
-        formData.append("email", updatedData.email);
+      const jsonData = {
+        email: finalData.email,
+        full_name: finalData.full_name,
+        gender: finalData.gender,
+        city_id: finalData.city_id,
+        phone_number: finalData.phone_number,
+        is_active: finalData.is_active,
+      };
+
+      if (finalData.password !== "") {
+        jsonData.password = finalData.password;
       }
 
-      if (updatedData.full_name) {
-        formData.append("full_name", updatedData.full_name);
+      await $API.patch(`/auth/users/${updatedData.id}`, jsonData);
+
+      if (updatedData.imageFile instanceof File) {
+        const imgData = new FormData();
+        imgData.append("image", updatedData.imageFile);
+
+        await $APIFORMS.put(`/auth/profile/image/change`, imgData);
       }
-
-      if (updatedData.gender) {
-        formData.append("gender", updatedData.gender);
-      }
-
-      // Добавляем city_id только если он больше 0
-      if (updatedData.city_id && updatedData.city_id > 0) {
-        formData.append("city_id", updatedData.city_id);
-      }
-
-      // Добавляем phone_number только если он не пустой
-      if (updatedData.phone_number && updatedData.phone_number.trim() !== "") {
-        formData.append("phone_number", updatedData.phone_number);
-      }
-
-      // is_active всегда отправляем
-      formData.append("is_active", updatedData.is_active ? 1 : 0);
-
-      // Пароль отправляем только если он заполнен (при изменении пароля)
-      if (updatedData.password && updatedData.password.trim() !== "") {
-        formData.append("password", updatedData.password);
-      }
-
-      // Изображение - отправляем только если есть новый файл
-      if (updatedData.imageFile && updatedData.imageFile instanceof File) {
-        formData.append("image", updatedData.imageFile);
-      }
-
-      console.log("Отправляемые данные:");
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
-
-      await $APIFORMS.patch(`/auth/users/${updatedData.id}`, formData);
 
       setEditModalOpen(false);
       fetchUsers();
-
-      // Опционально: показать успешное уведомление
-      alert("Пользователь успешно обновлен!");
+      alert("Пользователь успешно обновлён!");
     } catch (error) {
-      console.error("Error updating user:", error);
+      console.error("Update error:", error);
 
-      // Более детальная обработка ошибок
-      let errorMessage = "Ошибка обновления пользователя";
+      const err =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.response?.data ||
+        error.message;
 
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      alert(errorMessage);
+      alert(typeof err === "string" ? err : JSON.stringify(err, null, 2));
     }
   };
 
@@ -186,7 +190,7 @@ export default function Users() {
       <AddUserModal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        onSuccess={fetchUsers} // Обновляем список после добавления
+        onSuccess={fetchUsers}
       />
 
       <div className="p-6 bg-gray-50 min-h-screen">
@@ -284,9 +288,39 @@ export default function Users() {
                               <div className="h-10 w-10 rounded-full bg-slate-600 flex items-center justify-center text-white font-medium overflow-hidden">
                                 {user.image_url ? (
                                   <img
-                                    src={user.image_url}
+                                    src={getFullImageUrl(user.image_url)}
                                     alt={user.username || "avatar"}
                                     className="h-full w-full object-cover"
+                                    onError={(e) => {
+                                      console.error(
+                                        "Image failed to load:",
+                                        getFullImageUrl(user.image_url)
+                                      );
+                                      e.target.style.display = "none";
+                                      const parent = e.target.parentElement;
+                                      if (
+                                        parent &&
+                                        !parent.querySelector("span")
+                                      ) {
+                                        const initials = (
+                                          user.full_name ||
+                                          user.username ||
+                                          user.login ||
+                                          "—"
+                                        )
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join("")
+                                          .slice(0, 2)
+                                          .toUpperCase();
+
+                                        const span =
+                                          document.createElement("span");
+                                        span.className = "uppercase";
+                                        span.textContent = initials;
+                                        parent.appendChild(span);
+                                      }
+                                    }}
                                   />
                                 ) : (
                                   <span className="uppercase">
@@ -326,7 +360,7 @@ export default function Users() {
                             </div>
                             <div className="flex items-center text-sm text-gray-500">
                               <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                              {user.phone || "Не указан"}
+                              {user.phone || user.phone_number || "Не указан"}
                             </div>
                           </div>
                         </td>
@@ -357,11 +391,11 @@ export default function Users() {
                             >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
-                              <Trash2
-                                onClick={() => handleDeleteUser(user.id)}
-                                className="w-4 h-4"
-                              />
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                             <button className="p-2 text-gray-400 hover:text-slate-600 hover:bg-gray-100 rounded-lg transition">
                               <MoreVertical className="w-4 h-4" />

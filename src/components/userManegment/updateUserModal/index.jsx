@@ -2,13 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Save, User, Mail, Phone, MapPin, Upload, Key } from "lucide-react";
 import $API from "../../../axios";
 
-export default function EditUserModal({
-  dataUser,
-  userId,
-  isOpen,
-  onClose,
-  onSave,
-}) {
+export default function EditUserModal({ userId, isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState({
     email: "",
     full_name: "",
@@ -21,8 +15,27 @@ export default function EditUserModal({
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
-  const [originalImageUrl, setOriginalImageUrl] = useState(""); // Для хранения оригинального URL
+  const [originalImageUrl, setOriginalImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const getFullImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath;
+    }
+
+    const baseURL = $API.defaults.baseURL || window.location.origin;
+
+    const cleanBaseURL = baseURL.replace(/\/api\/?$/, "");
+
+    const fullPath = imagePath.startsWith("/")
+      ? `${cleanBaseURL}${imagePath}`
+      : `${cleanBaseURL}/${imagePath}`;
+
+    console.log("Full image URL:", fullPath);
+    return fullPath;
+  };
 
   useEffect(() => {
     if (userId && isOpen) {
@@ -40,11 +53,17 @@ export default function EditUserModal({
             city_id: userData.city_id || 0,
             phone_number: userData.phone_number || userData.phone || "",
             is_active: userData.is_active ?? userData.status ?? true,
+            password: "", 
           });
 
-          const imageUrl = userData.image_url || "";
+          const imageUrl = getFullImageUrl(
+            userData.image_url || userData.image || userData.avatar
+          );
+          console.log("Original image URL from server:", userData.image_url);
+          console.log("Processed image URL:", imageUrl);
+
           setOriginalImageUrl(imageUrl);
-          setImagePreview(imageUrl);
+          setImagePreview(""); 
           setImageFile(null);
           setIsLoading(false);
         } catch (error) {
@@ -68,6 +87,16 @@ export default function EditUserModal({
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Файл слишком большой. Максимальный размер: 5MB");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        alert("Пожалуйста, выберите изображение");
+        return;
+      }
+
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -85,12 +114,18 @@ export default function EditUserModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ ...formData, id: userId, imageFile });
+
+    const submitData = { ...formData, id: userId, imageFile };
+
+    if (!submitData.password || submitData.password.trim() === "") {
+      delete submitData.password;
+    }
+
+    onSave(submitData);
   };
 
   if (!isOpen) return null;
 
-  // Определяем, что показывать: новое изображение или существующее
   const displayImage = imagePreview || originalImageUrl;
 
   return (
@@ -127,7 +162,7 @@ export default function EditUserModal({
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
             </div>
           ) : (
-            <div>
+            <form onSubmit={handleSubmit}>
               <div className="px-6 py-6 space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -144,10 +179,16 @@ export default function EditUserModal({
                             alt="Preview"
                             className="h-24 w-24 rounded-full object-cover border-4 border-gray-200"
                             onError={(e) => {
-                              // Если изображение не загружается, показываем placeholder
+                              console.error(
+                                "Image failed to load:",
+                                displayImage
+                              );
+                              e.target.onerror = null; // Предотвращаем бесконечный цикл
                               e.target.style.display = "none";
-                              e.target.nextElementSibling.style.display =
-                                "flex";
+                              const placeholder = e.target.nextElementSibling;
+                              if (placeholder) {
+                                placeholder.style.display = "flex";
+                              }
                             }}
                           />
                           <div className="h-24 w-24 rounded-full bg-gray-200 items-center justify-center hidden">
@@ -210,6 +251,7 @@ export default function EditUserModal({
                     name="full_name"
                     value={formData.full_name}
                     onChange={handleChange}
+                    required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
                     placeholder="Введите полное имя"
                   />
@@ -225,6 +267,7 @@ export default function EditUserModal({
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
                     placeholder="user@example.com"
                   />
@@ -248,15 +291,15 @@ export default function EditUserModal({
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <Key className="w-4 h-4 inline mr-2" />
-                    Поменять пароль
+                    Новый пароль (оставьте пустым, если не хотите менять)
                   </label>
                   <input
-                    type="text"
+                    type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none"
-                    placeholder="Password change her"
+                    placeholder="Введите новый пароль"
                   />
                 </div>
 
@@ -319,15 +362,14 @@ export default function EditUserModal({
                   Отмена
                 </button>
                 <button
-                  type="button"
-                  onClick={handleSubmit}
+                  type="submit"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition"
                 >
                   <Save className="w-4 h-4" />
                   Сохранить
                 </button>
               </div>
-            </div>
+            </form>
           )}
         </div>
       </div>

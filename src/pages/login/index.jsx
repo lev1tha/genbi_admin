@@ -63,7 +63,7 @@ export default function Login() {
 
           startTokenRefresh();
 
-          window.location.href = "/users";
+          window.location.href = "/dashboard";
         } else {
           setError("Токен не получен от сервера");
           console.error("Структура ответа:", response.data);

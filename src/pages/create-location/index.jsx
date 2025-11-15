@@ -86,6 +86,8 @@ const LocationsPage = () => {
           setCities((prev) => [...prev, data]);
           break;
       }
+
+      setShowModal(false);
     } else {
       switch (activeTab) {
         case "countries":

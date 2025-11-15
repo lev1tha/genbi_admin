@@ -1,4 +1,3 @@
-// LocationModal.jsx
 import { useState, useEffect } from "react";
 import $API from "../../../axios";
 
@@ -119,14 +118,31 @@ export const LocationModal = ({
         response = await $API.put(`${endpoint}${selectedItem.id}/`, submitData);
       }
 
-      console.log("Успешно сохранено:", response.data);
-      onSuccess(response.data, type);
-      onClose();
+      if (response.status === 200 || response.status === 201) {
+        console.log("Успешно сохранено:", response.data);
+        onSuccess(response.data, type);
+        onClose();
+      }
     } catch (err) {
       console.error("Ошибка:", err);
-      setError(
-        err.response?.data?.message || "Произошла ошибка при сохранении"
-      );
+
+      if (err.response) {
+        let serverError = "Произошла ошибка при сохранении";
+
+        const data = err.response.data;
+
+        if (Array.isArray(data.detail)) {
+          serverError = data.detail[0]?.msg || serverError;
+        } else if (typeof data.detail === "string") {
+          serverError = data.detail;
+        } else if (data.message) {
+          serverError = data.message;
+        }
+
+        setError(serverError);
+      } else {
+        setError("Произошла ошибка при соединении с сервером");
+      }
     } finally {
       setLoading(false);
     }
@@ -186,7 +202,7 @@ export const LocationModal = ({
                 required
                 maxLength={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
-                placeholder="Например: KG"
+                placeholder="Например: KGZ"
               />
             </div>
           )}
