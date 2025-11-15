@@ -26,11 +26,9 @@ const setTokenRefreshTimer = () => {
   const refreshTime = 25 * 60 * 1000;
 
   refreshTokenTimer = setTimeout(async () => {
-    console.log("⏰ Автоматическое обновление токена...");
     await refreshAccessToken();
   }, refreshTime);
 
-  console.log(`⏱️ Токен будет обновлен через ${refreshTime / 60000} минут`);
 };
 
 const refreshAccessToken = async () => {
@@ -41,7 +39,6 @@ const refreshAccessToken = async () => {
       throw new Error("No refresh token available");
     }
 
-    console.log("🔄 Обновление токена...");
 
     const refreshResponse = await axios.post(`${PUBLIC_BASE_URL}auth/refresh`, {
       refresh_token: refreshToken,
@@ -53,11 +50,9 @@ const refreshAccessToken = async () => {
 
     if (newToken) {
       localStorage.setItem("token", newToken);
-      console.log("✅ Новый access токен сохранен");
 
       if (newRefreshToken) {
         localStorage.setItem("refreshToken", newRefreshToken);
-        console.log("✅ Новый refresh токен сохранен");
       }
 
       setTokenRefreshTimer();
@@ -67,7 +62,6 @@ const refreshAccessToken = async () => {
       throw new Error("No access token received");
     }
   } catch (error) {
-    console.error("Ошибка обновления токена:", error);
 
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
@@ -117,7 +111,6 @@ $API.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        console.log("🔒 Получен 401, попытка обновить токен...");
         const newToken = await refreshAccessToken();
 
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -140,7 +133,6 @@ $APIFORMS.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        console.log("🔒 Получен 401, попытка обновить токен...");
         const newToken = await refreshAccessToken();
 
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -162,7 +154,6 @@ export const stopTokenRefresh = () => {
   if (refreshTokenTimer) {
     clearTimeout(refreshTokenTimer);
     refreshTokenTimer = null;
-    console.log("⏹️ Таймер обновления токена остановлен");
   }
 };
 

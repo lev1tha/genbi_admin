@@ -6,6 +6,7 @@ import Users from "./pages/users";
 import AdminProfile from "./pages/profile";
 import Dashboard from "./pages/dashboard";
 import CreateLocation from "./pages/create-location";
+import HealthServer from "./pages/healthy-server";
 
 function App() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ function App() {
         <Route path="/my-profile" element={<AdminProfile />} />
         <Route path="/create-location" element={<CreateLocation />} />
         <Route path="/users" element={<Users />} />
+        <Route path="/health-server" element={<HealthServer />} />
       </Route>
     </Routes>
   );

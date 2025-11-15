@@ -1,10 +1,11 @@
 import {
   LayoutDashboard,
   Users,
-  Settings,
+  // Settings,
   BarChart3,
-  FileText,
-  Bell,
+  // FileText,
+  // Bell,
+  Server,
 } from "lucide-react";
 
 export const $NavigateTo = [
@@ -39,4 +40,9 @@ export const $NavigateTo = [
   //   path: "/settings",
   //   icon: <Settings />,
   // },
+  {
+    name: "Состояние сервера",
+    path: "/health-server",
+    icon: <Server />,
+  },
 ];
